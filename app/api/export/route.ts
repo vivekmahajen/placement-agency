@@ -4,6 +4,13 @@ function escapeCsvCell(value: string): string {
   return `"${value.replace(/"/g, '""')}"`
 }
 
+function buildLinkedInUrl(p: Provider): string {
+  const parts = [p.firstName, p.lastName, p.professionLabel, p.organizationName, p.city, p.state]
+    .filter(Boolean)
+    .join(' ')
+  return `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(parts)}`
+}
+
 export async function POST(request: Request) {
   let providers: Provider[]
 
@@ -26,6 +33,7 @@ export async function POST(request: Request) {
     'Zip',
     'Email',
     'NPI Number',
+    'LinkedIn Search',
   ]
 
   const rows = providers.map((p: Provider) => [
@@ -40,6 +48,7 @@ export async function POST(request: Request) {
     p.zip,
     p.email ?? 'N/A',
     p.npi,
+    buildLinkedInUrl(p),
   ])
 
   const csv = [headers, ...rows]
