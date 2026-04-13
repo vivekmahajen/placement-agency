@@ -1,13 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getCareHomeById, insertEmailLog, updateCareHomeEmailStatus, markEmailInvalid } from '@/lib/db-queries'
 import { buildAvailabilityRequestEmail } from '@/lib/email-template'
-import sgMail from '@sendgrid/mail'
+import { sendMail } from '@/lib/mailer'
 
 export const dynamic = 'force-dynamic'
-
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY)
-}
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
@@ -38,23 +34,14 @@ export async function POST(
     return NextResponse.json({ error: 'Email address is invalid' }, { status: 400 })
   }
 
-  if (!process.env.SENDGRID_API_KEY || !process.env.SENDGRID_FROM_EMAIL) {
-    return NextResponse.json({ error: 'SendGrid is not configured. Add SENDGRID_API_KEY and SENDGRID_FROM_EMAIL to .env.local' }, { status: 503 })
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    return NextResponse.json({ error: 'Gmail is not configured. Add GMAIL_USER and GMAIL_APP_PASSWORD to .env.local' }, { status: 503 })
   }
 
   const { subject, text, html, replyTo } = buildAvailabilityRequestEmail(home)
 
   try {
-    const [response] = await sgMail.send({
-      to: home.email.trim(),
-      from: process.env.SENDGRID_FROM_EMAIL,
-      replyTo,
-      subject,
-      text,
-      html,
-    })
-
-    const messageId = response.headers['x-message-id'] as string | undefined
+    const { messageId } = await sendMail({ to: home.email.trim(), subject, text, html, replyTo })
 
     insertEmailLog({ care_home_id: homeId, sendgrid_message_id: messageId, subject })
     updateCareHomeEmailStatus(homeId, 'sent', new Date().toISOString())

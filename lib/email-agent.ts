@@ -1,11 +1,7 @@
-import sgMail from '@sendgrid/mail'
+import { sendMail } from './mailer'
 import { getCareHomesToEmail, insertEmailLog, updateCareHomeEmailStatus, markEmailInvalid } from './db-queries'
 import { buildAvailabilityRequestEmail } from './email-template'
 import type { AgentRunResult, CareHome } from './types'
-
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY)
-}
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
@@ -24,16 +20,7 @@ async function sendToHome(home: CareHome): Promise<{ success: boolean; messageId
   const { subject, text, html, replyTo } = buildAvailabilityRequestEmail(home)
 
   try {
-    const [response] = await sgMail.send({
-      to: home.email.trim(),
-      from: process.env.SENDGRID_FROM_EMAIL ?? '',
-      replyTo,
-      subject,
-      text,
-      html,
-    })
-
-    const messageId = response.headers['x-message-id'] as string | undefined
+    const { messageId } = await sendMail({ to: home.email.trim(), subject, text, html, replyTo })
     return { success: true, messageId }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
@@ -80,7 +67,7 @@ export async function runWeeklyAgent(): Promise<AgentRunResult> {
       result.errors.push({ homeId: home.id, homeName: home.name, error: error ?? 'send_failed' })
     }
 
-    // 200ms delay between emails to respect SendGrid rate limits
+    // 200ms delay between emails to avoid Gmail rate limits
     await sleep(200)
   }
 
