@@ -124,7 +124,7 @@ export default function SubscriptionManager({ initial }: { initial: SubInfo }) {
         </div>
       </div>
 
-      {!isActive && (
+      {!isActive && !isTrial && (
         <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white">
           <h2 className="font-bold text-xl mb-1">Subscribe Now</h2>
           <p className="text-blue-100 text-sm mb-4">
@@ -138,6 +138,13 @@ export default function SubscriptionManager({ initial }: { initial: SubInfo }) {
               {loading ? 'Redirecting…' : `Pay $${info.totalUpfront.toFixed(2)} – Activate 12 Months`}
             </button>
           )}
+        </div>
+      )}
+
+      {isTrial && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 text-sm text-blue-800">
+          <p className="font-semibold mb-1">Your free trial is active</p>
+          <p>After your trial ends, you can subscribe for $4.99/email/month (12-month minimum, billed upfront).</p>
         </div>
       )}
 
