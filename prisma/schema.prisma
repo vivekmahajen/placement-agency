@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String
+  passwordHash String
+  role         String   @default("USER")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  emailAccounts EmailAccount[]
+  keywords      Keyword[]
+  subscription  Subscription?
+}
+
+model EmailAccount {
+  id            String    @id @default(cuid())
+  userId        String
+  emailAddress  String
+  accessToken   String?
+  refreshToken  String?
+  tokenExpiry   DateTime?
+  isConnected   Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  lastScannedAt DateTime?
+  createdAt     DateTime  @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailMatches EmailMatch[]
+
+  @@unique([userId, emailAddress])
+}
+
+model Keyword {
+  id        String   @id @default(cuid())
+  userId    String
+  keyword   String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, keyword])
+}
+
+model EmailMatch {
+  id              String   @id @default(cuid())
+  emailAccountId  String
+  gmailMessageId  String
+  subject         String
+  senderName      String
+  senderEmail     String
+  receivedAt      DateTime
+  matchedKeywords String
+  snippet         String?
+  smsSent         Boolean  @default(false)
+  smsSentAt       DateTime?
+  createdAt       DateTime @default(now())
+
+  emailAccount EmailAccount @relation(fields: [emailAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([emailAccountId, gmailMessageId])
+}
+
+model Subscription {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  status           String    @default("TRIAL")
+  trialStartDate   DateTime  @default(now())
+  trialEndDate     DateTime
+  paidUntil        DateTime?
+  stripeCustomerId String?
+  stripeSessionId  String?
+  totalPaid        Float?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
