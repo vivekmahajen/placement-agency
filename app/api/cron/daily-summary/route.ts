@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { runDailyScan } from '@/lib/email-scanner'
 
-export async function POST(request: Request) {
+// Vercel Cron calls GET; manual/external callers can use POST
+async function handler(request: Request) {
   const authHeader = request.headers.get('authorization')
   const expected = `Bearer ${process.env.CRON_SECRET}`
   if (authHeader !== expected) {
@@ -11,3 +12,5 @@ export async function POST(request: Request) {
   const result = await runDailyScan()
   return NextResponse.json({ success: true, ...result })
 }
+
+export { handler as GET, handler as POST }
