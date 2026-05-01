@@ -49,6 +49,29 @@ export interface NpiTaxonomy {
   license?: string
 }
 
+export type ProfessionalTitle = 'Social Worker' | 'Case Manager' | 'Discharge Planner'
+
+export interface CaseRecord {
+  id: string
+  createdAt: string
+  title: ProfessionalTitle
+  name: string
+  facility: string
+  location: string
+  capacity: string
+  painPoint: string
+  solution: string
+}
+
+export interface AnalyzeRequest {
+  title: ProfessionalTitle
+  name: string
+  facility: string
+  location: string
+  capacity: string
+  painPoint: string
+}
+
 export interface NpiRawResult {
   number: string
   enumeration_type: 'NPI-1' | 'NPI-2'
