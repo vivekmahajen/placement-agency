@@ -5,6 +5,7 @@ import { findUserByEmail, createUser } from '@/lib/storage'
 import type { ProfessionalTitle } from '@/lib/types'
 
 export async function POST(request: Request) {
+  let step = 'parse'
   try {
     const { email, password, name, title } = await request.json()
 
@@ -15,17 +16,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 })
     }
 
+    step = 'check-existing'
     const existing = await findUserByEmail(email.toLowerCase())
     if (existing) {
       return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 })
     }
 
+    step = 'hash-password'
     const id = randomUUID()
     const passwordHash = await hashPassword(password)
     const createdAt = new Date().toISOString()
 
+    step = 'create-user'
     await createUser({ id, email: email.toLowerCase(), name, title: title as ProfessionalTitle, passwordHash, createdAt })
 
+    step = 'create-token'
     const token = await createToken({ userId: id, email: email.toLowerCase(), name, title: title as ProfessionalTitle })
 
     const response = NextResponse.json({ success: true, name })
@@ -33,13 +38,13 @@ export async function POST(request: Request) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
       path: '/',
     })
     return response
   } catch (err) {
-    console.error(err)
+    console.error('[register] step=%s error=%o', step, err)
     const message = err instanceof Error ? err.message : String(err)
-    return NextResponse.json({ error: `Registration failed: ${message}` }, { status: 500 })
+    return NextResponse.json({ error: `Registration failed at [${step}]: ${message}` }, { status: 500 })
   }
 }

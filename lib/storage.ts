@@ -88,11 +88,10 @@ async function createUserDb(user: User & { passwordHash: string }): Promise<void
 import fs from 'fs'
 import path from 'path'
 
-// Use /tmp when process.cwd() is not writable (Vercel serverless)
-const DATA_DIR = (() => {
-  const cwd = path.join(process.cwd(), 'data')
-  try { fs.mkdirSync(cwd, { recursive: true }); return cwd } catch { return '/tmp/placement-data' }
-})()
+// Always use /tmp in production (Vercel filesystem is read-only except /tmp)
+const DATA_DIR = process.env.NODE_ENV === 'production'
+  ? '/tmp/placement-data'
+  : path.join(process.cwd(), 'data')
 const RECORDS_FILE = path.join(DATA_DIR, 'records.json')
 const USERS_FILE = path.join(DATA_DIR, 'users.json')
 
