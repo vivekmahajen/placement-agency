@@ -3,13 +3,17 @@ import { randomUUID } from 'crypto'
 import { saveRecord } from '@/lib/storage'
 import type { AnalyzeRequest, CaseRecord } from '@/lib/types'
 
-const apiKey = process.env.ANTHROPIC_API_KEY ?? ''
-const isSessionToken = apiKey.startsWith('sk-ant-si-')
-const client = new Anthropic(
-  isSessionToken
-    ? { apiKey: 'placeholder', defaultHeaders: { Authorization: `Bearer ${apiKey}`, 'x-api-key': '' } }
-    : { apiKey }
-)
+function makeClient() {
+  const apiKey = process.env.ANTHROPIC_API_KEY ?? ''
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set')
+  if (apiKey.startsWith('sk-ant-si-')) {
+    return new Anthropic({
+      apiKey: 'placeholder',
+      defaultHeaders: { Authorization: `Bearer ${apiKey}`, 'x-api-key': '' },
+    })
+  }
+  return new Anthropic({ apiKey })
+}
 
 const SYSTEM_PROMPT = `You are an expert care placement specialist with deep knowledge of US healthcare systems, discharge planning, case management, and social work. You help discharge planners, case managers, and social workers solve their most challenging pain points when placing patients in care homes and long-term care facilities.
 
@@ -61,6 +65,7 @@ Please search for and provide the best possible solutions, resources, and strate
       }
 
       try {
+        const client = makeClient()
         let messages: Anthropic.MessageParam[] = [
           { role: 'user', content: userMessage },
         ]
