@@ -2,7 +2,11 @@ import fs from 'fs'
 import path from 'path'
 import type { CaseRecord } from './types'
 
-const DATA_DIR = path.join(process.cwd(), 'data')
+// On Vercel the project root is read-only; /tmp is writable but ephemeral.
+// Locally, use the data/ directory so records persist across restarts.
+const DATA_DIR = process.env.VERCEL
+  ? '/tmp'
+  : path.join(process.cwd(), 'data')
 const DATA_FILE = path.join(DATA_DIR, 'records.json')
 
 function ensureDataFile(): void {
@@ -15,8 +19,8 @@ function ensureDataFile(): void {
 }
 
 export function getRecords(): CaseRecord[] {
-  ensureDataFile()
   try {
+    ensureDataFile()
     const raw = fs.readFileSync(DATA_FILE, 'utf-8')
     return JSON.parse(raw) as CaseRecord[]
   } catch {
@@ -25,8 +29,12 @@ export function getRecords(): CaseRecord[] {
 }
 
 export function saveRecord(record: CaseRecord): void {
-  ensureDataFile()
-  const records = getRecords()
-  records.unshift(record)
-  fs.writeFileSync(DATA_FILE, JSON.stringify(records, null, 2), 'utf-8')
+  try {
+    ensureDataFile()
+    const records = getRecords()
+    records.unshift(record)
+    fs.writeFileSync(DATA_FILE, JSON.stringify(records, null, 2), 'utf-8')
+  } catch {
+    // Silently ignore write failures (e.g. read-only filesystem)
+  }
 }
