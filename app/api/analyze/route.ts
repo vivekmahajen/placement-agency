@@ -97,7 +97,7 @@ Please search for and provide the best possible solutions, resources, and strate
           solution: fullSolution,
         }
 
-        saveRecord(record)
+        await saveRecord(record)
         send({ type: 'done', record })
         controller.close()
       } catch (err) {
