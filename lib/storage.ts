@@ -84,16 +84,20 @@ async function createUserDb(user: User & { passwordHash: string }): Promise<void
   `
 }
 
-// ── File fallback (local dev) ──────────────────────────────────────────────
+// ── File fallback (local dev / Vercel without Postgres) ───────────────────
 import fs from 'fs'
 import path from 'path'
 
-const DATA_DIR = path.join(process.cwd(), 'data')
+// Use /tmp when process.cwd() is not writable (Vercel serverless)
+const DATA_DIR = (() => {
+  const cwd = path.join(process.cwd(), 'data')
+  try { fs.mkdirSync(cwd, { recursive: true }); return cwd } catch { return '/tmp/placement-data' }
+})()
 const RECORDS_FILE = path.join(DATA_DIR, 'records.json')
 const USERS_FILE = path.join(DATA_DIR, 'users.json')
 
 function ensureDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
+  try { fs.mkdirSync(DATA_DIR, { recursive: true }) } catch { /* ignore */ }
 }
 
 function readJson<T>(file: string, fallback: T): T {
@@ -131,24 +135,24 @@ function createUserFile(user: UserWithHash) {
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────
-const useDb = Boolean(process.env.POSTGRES_URL)
+const useDb = () => Boolean(process.env.POSTGRES_URL)
 
 export async function getRecords(): Promise<CaseRecord[]> {
-  if (useDb) return getRecordsFromDb()
+  if (useDb()) return getRecordsFromDb()
   return getRecordsFromFile()
 }
 
 export async function saveRecord(record: CaseRecord): Promise<void> {
-  if (useDb) return saveRecordToDb(record)
+  if (useDb()) return saveRecordToDb(record)
   saveRecordToFile(record)
 }
 
 export async function findUserByEmail(email: string): Promise<UserWithHash | null> {
-  if (useDb) return findUserByEmailDb(email)
+  if (useDb()) return findUserByEmailDb(email)
   return findUserByEmailFile(email)
 }
 
 export async function createUser(user: UserWithHash): Promise<void> {
-  if (useDb) return createUserDb(user)
+  if (useDb()) return createUserDb(user)
   createUserFile(user)
 }

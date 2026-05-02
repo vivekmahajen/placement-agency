@@ -11,6 +11,7 @@ import ExportButton from '@/components/ExportButton'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import ErrorBanner from '@/components/ErrorBanner'
 import UserMenu from '@/components/UserMenu'
+import Footer from '@/components/Footer'
 import { useSearch } from '@/hooks/useSearch'
 import type { AuthPayload, CaseRecord } from '@/lib/types'
 
@@ -86,7 +87,7 @@ export default function Home() {
   const hasSearched = lastQuery !== null
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
@@ -98,8 +99,8 @@ export default function Home() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Care Placement Agency</h1>
-                <p className="text-sm text-gray-500">AI-powered solutions for discharge planners, case managers &amp; social workers</p>
+                <h1 className="text-xl font-bold text-gray-900">Affordable Golden Years</h1>
+                <p className="text-sm text-gray-500">A placement agency for Seniors &mdash; AI-powered solutions for discharge planners, case managers &amp; social workers</p>
               </div>
             </div>
             {currentUser && <UserMenu name={currentUser.name} title={currentUser.title} />}
@@ -327,6 +328,7 @@ export default function Home() {
           </div>
         )}
       </div>
+      <Footer />
     </main>
   )
 }

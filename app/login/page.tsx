@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Footer from '@/components/Footer'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -35,7 +36,8 @@ export default function LoginPage() {
   const inputClass = 'w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="flex-1 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -44,8 +46,9 @@ export default function LoginPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Care Placement Agency</h1>
-          <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
+          <h1 className="text-2xl font-bold text-gray-900">Affordable Golden Years</h1>
+          <p className="text-xs text-teal-600 font-medium mt-0.5">A placement agency for Seniors</p>
+          <p className="text-sm text-gray-500 mt-2">Sign in to your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 space-y-5">
@@ -95,6 +98,8 @@ export default function LoginPage() {
           </p>
         </form>
       </div>
+      </div>
+      <Footer />
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { verifyToken, COOKIE_NAME } from '@/lib/auth'
 import { getRecords } from '@/lib/storage'
+import Footer from '@/components/Footer'
 import type { CaseRecord } from '@/lib/types'
 
 const TITLE_COLORS: Record<string, string> = {
@@ -28,7 +29,7 @@ export default async function ReportPage() {
   const records = await getRecords()
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
@@ -40,8 +41,8 @@ export default async function ReportPage() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Care Placement Agency</h1>
-                <p className="text-sm text-gray-500">Pain Point &amp; Solutions Report</p>
+                <h1 className="text-xl font-bold text-gray-900">Affordable Golden Years</h1>
+                <p className="text-sm text-gray-500">A placement agency for Seniors &mdash; Pain Point &amp; Solutions Report</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -120,6 +121,7 @@ export default async function ReportPage() {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   )
 }
