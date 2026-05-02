@@ -3,13 +3,19 @@ import { randomUUID } from 'crypto'
 import { saveRecord } from '@/lib/storage'
 import type { AnalyzeRequest, CaseRecord } from '@/lib/types'
 
-const client = new Anthropic()
+const sessionToken = process.env.ANTHROPIC_API_KEY ?? ''
+const client = new Anthropic({
+  apiKey: sessionToken.startsWith('sk-ant-si-') ? 'placeholder' : sessionToken,
+  ...(sessionToken.startsWith('sk-ant-si-') && {
+    defaultHeaders: { Authorization: `Bearer ${sessionToken}`, 'x-api-key': '' },
+  }),
+})
 
 const SYSTEM_PROMPT = `You are an expert care placement specialist with deep knowledge of US healthcare systems, discharge planning, case management, and social work. You help discharge planners, case managers, and social workers solve their most challenging pain points when placing patients in care homes and long-term care facilities.
 
 When given a pain point or challenge:
 1. Thoroughly analyze the specific challenge in context
-2. Use web search to find current best practices, resources, regulations, and real-world solutions
+2. Draw on your deep knowledge of best practices, resources, regulations, and real-world solutions
 3. Provide concrete, actionable recommendations a busy healthcare professional can implement today
 4. Include relevant tools, organizations, regulatory frameworks, and funding sources
 5. Suggest both immediate quick wins and longer-term strategies
@@ -59,37 +65,25 @@ Please search for and provide the best possible solutions, resources, and strate
           { role: 'user', content: userMessage },
         ]
 
-        while (true) {
-          const stream = client.messages.stream({
-            model: 'claude-opus-4-7',
-            max_tokens: 8000,
-            thinking: { type: 'adaptive' },
-            system: SYSTEM_PROMPT,
-            tools: [
-              { type: 'web_search_20260209', name: 'web_search' },
-            ],
-            messages,
-          })
+        const stream = client.messages.stream({
+          model: 'claude-opus-4-7',
+          max_tokens: 8000,
+          thinking: { type: 'adaptive' },
+          system: SYSTEM_PROMPT,
+          messages,
+        })
 
-          for await (const event of stream) {
-            if (
-              event.type === 'content_block_delta' &&
-              event.delta.type === 'text_delta'
-            ) {
-              fullSolution += event.delta.text
-              send({ type: 'delta', text: event.delta.text })
-            }
+        for await (const event of stream) {
+          if (
+            event.type === 'content_block_delta' &&
+            event.delta.type === 'text_delta'
+          ) {
+            fullSolution += event.delta.text
+            send({ type: 'delta', text: event.delta.text })
           }
-
-          const finalMsg = await stream.finalMessage()
-
-          if (finalMsg.stop_reason !== 'pause_turn') break
-
-          messages = [
-            { role: 'user', content: userMessage },
-            { role: 'assistant', content: finalMsg.content },
-          ]
         }
+
+        await stream.finalMessage()
 
         const record: CaseRecord = {
           id: randomUUID(),
