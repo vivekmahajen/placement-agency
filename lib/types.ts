@@ -72,6 +72,21 @@ export interface AnalyzeRequest {
   painPoint: string
 }
 
+export interface User {
+  id: string
+  email: string
+  name: string
+  title: ProfessionalTitle
+  createdAt: string
+}
+
+export interface AuthPayload {
+  userId: string
+  email: string
+  name: string
+  title: ProfessionalTitle
+}
+
 export interface NpiRawResult {
   number: string
   enumeration_type: 'NPI-1' | 'NPI-2'

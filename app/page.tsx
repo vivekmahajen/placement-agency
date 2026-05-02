@@ -10,13 +10,19 @@ import PaginationControls from '@/components/PaginationControls'
 import ExportButton from '@/components/ExportButton'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import ErrorBanner from '@/components/ErrorBanner'
+import UserMenu from '@/components/UserMenu'
 import { useSearch } from '@/hooks/useSearch'
-import type { CaseRecord } from '@/lib/types'
+import type { AuthPayload, CaseRecord } from '@/lib/types'
 
 type Tab = 'analyzer' | 'search'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('analyzer')
+  const [currentUser, setCurrentUser] = useState<AuthPayload | null>(null)
+
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.json()).then(d => setCurrentUser(d.user ?? null))
+  }, [])
 
   // Pain point analyzer state
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -84,28 +90,19 @@ export default function Home() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-teal-600 rounded-lg flex items-center justify-center shrink-0">
-              <svg
-                className="w-5 h-5 text-white"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                />
-              </svg>
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-teal-600 rounded-lg flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Care Placement Agency</h1>
+                <p className="text-sm text-gray-500">AI-powered solutions for discharge planners, case managers &amp; social workers</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Care Placement Agency</h1>
-              <p className="text-sm text-gray-500">
-                AI-powered solutions for discharge planners, case managers &amp; social workers
-              </p>
-            </div>
+            {currentUser && <UserMenu name={currentUser.name} title={currentUser.title} />}
           </div>
         </div>
       </header>
