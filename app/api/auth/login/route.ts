@@ -12,7 +12,10 @@ export async function POST(request: Request) {
 
     const user = await findUserByEmail(email.toLowerCase())
     if (!user) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
+      const usingDb = Boolean(process.env.POSTGRES_URL)
+      return NextResponse.json({
+        error: `Invalid email or password${usingDb ? '' : ' (note: using temporary storage — user data is lost on redeploy; connect Vercel Postgres to persist accounts)'}`,
+      }, { status: 401 })
     }
 
     const valid = await verifyPassword(password, user.passwordHash)
