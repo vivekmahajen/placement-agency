@@ -1,46 +1,56 @@
 import type { CaseRecord, User } from './types'
+import { Pool } from 'pg'
 
-// ── Postgres (Vercel) ──────────────────────────────────────────────────────
-async function getDb() {
-  const { sql } = await import('@vercel/postgres')
-  return sql
+// ── Postgres ───────────────────────────────────────────────────────────────
+let pool: Pool | null = null
+
+function getPool(): Pool {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: process.env.POSTGRES_URL,
+      ssl: { rejectUnauthorized: false },
+      max: 3,
+    })
+  }
+  return pool
 }
 
-async function ensureTables() {
-  const sql = await getDb()
-  await sql`
-    CREATE TABLE IF NOT EXISTS case_records (
-      id          TEXT PRIMARY KEY,
-      created_at  TIMESTAMPTZ NOT NULL,
-      title       TEXT NOT NULL,
-      name        TEXT NOT NULL,
-      facility    TEXT NOT NULL DEFAULT '',
-      location    TEXT NOT NULL DEFAULT '',
-      capacity    TEXT NOT NULL DEFAULT '',
-      pain_point  TEXT NOT NULL,
-      solution    TEXT NOT NULL
-    )
-  `
-  await sql`
-    CREATE TABLE IF NOT EXISTS users (
-      id            TEXT PRIMARY KEY,
-      email         TEXT UNIQUE NOT NULL,
-      name          TEXT NOT NULL,
-      title         TEXT NOT NULL DEFAULT 'Social Worker',
-      password_hash TEXT NOT NULL,
-      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `
+async function ensureTables(): Promise<void> {
+  const client = await getPool().connect()
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS case_records (
+        id          TEXT PRIMARY KEY,
+        created_at  TIMESTAMPTZ NOT NULL,
+        title       TEXT NOT NULL,
+        name        TEXT NOT NULL,
+        facility    TEXT NOT NULL DEFAULT '',
+        location    TEXT NOT NULL DEFAULT '',
+        capacity    TEXT NOT NULL DEFAULT '',
+        pain_point  TEXT NOT NULL,
+        solution    TEXT NOT NULL
+      )
+    `)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id            TEXT PRIMARY KEY,
+        email         TEXT UNIQUE NOT NULL,
+        name          TEXT NOT NULL,
+        title         TEXT NOT NULL DEFAULT 'Social Worker',
+        password_hash TEXT NOT NULL,
+        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `)
+  } finally {
+    client.release()
+  }
 }
 
-// ── Case Records (Postgres) ────────────────────────────────────────────────
 async function getRecordsFromDb(): Promise<CaseRecord[]> {
   await ensureTables()
-  const sql = await getDb()
-  const { rows } = await sql`
-    SELECT id, created_at, title, name, facility, location, capacity, pain_point, solution
-    FROM case_records ORDER BY created_at DESC
-  `
+  const { rows } = await getPool().query(
+    'SELECT id, created_at, title, name, facility, location, capacity, pain_point, solution FROM case_records ORDER BY created_at DESC'
+  )
   return rows.map((r) => ({
     id: r.id, createdAt: r.created_at, title: r.title, name: r.name,
     facility: r.facility, location: r.location, capacity: r.capacity,
@@ -50,24 +60,20 @@ async function getRecordsFromDb(): Promise<CaseRecord[]> {
 
 async function saveRecordToDb(record: CaseRecord): Promise<void> {
   await ensureTables()
-  const sql = await getDb()
-  await sql`
-    INSERT INTO case_records (id, created_at, title, name, facility, location, capacity, pain_point, solution)
-    VALUES (${record.id}, ${record.createdAt}, ${record.title}, ${record.name},
-            ${record.facility}, ${record.location}, ${record.capacity},
-            ${record.painPoint}, ${record.solution})
-    ON CONFLICT (id) DO NOTHING
-  `
+  await getPool().query(
+    `INSERT INTO case_records (id, created_at, title, name, facility, location, capacity, pain_point, solution)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (id) DO NOTHING`,
+    [record.id, record.createdAt, record.title, record.name,
+     record.facility, record.location, record.capacity, record.painPoint, record.solution]
+  )
 }
 
-// ── Users (Postgres) ───────────────────────────────────────────────────────
 async function findUserByEmailDb(email: string): Promise<(User & { passwordHash: string }) | null> {
   await ensureTables()
-  const sql = await getDb()
-  const { rows } = await sql`
-    SELECT id, email, name, title, password_hash, created_at
-    FROM users WHERE email = ${email} LIMIT 1
-  `
+  const { rows } = await getPool().query(
+    'SELECT id, email, name, title, password_hash, created_at FROM users WHERE email = $1 LIMIT 1',
+    [email]
+  )
   if (!rows[0]) return null
   const r = rows[0]
   return { id: r.id, email: r.email, name: r.name, title: r.title,
@@ -76,19 +82,17 @@ async function findUserByEmailDb(email: string): Promise<(User & { passwordHash:
 
 async function createUserDb(user: User & { passwordHash: string }): Promise<void> {
   await ensureTables()
-  const sql = await getDb()
-  await sql`
-    INSERT INTO users (id, email, name, title, password_hash, created_at)
-    VALUES (${user.id}, ${user.email}, ${user.name}, ${user.title},
-            ${user.passwordHash}, ${user.createdAt})
-  `
+  await getPool().query(
+    `INSERT INTO users (id, email, name, title, password_hash, created_at)
+     VALUES ($1,$2,$3,$4,$5,$6)`,
+    [user.id, user.email, user.name, user.title, user.passwordHash, user.createdAt]
+  )
 }
 
 // ── File fallback (local dev / Vercel without Postgres) ───────────────────
 import fs from 'fs'
 import path from 'path'
 
-// Always use /tmp in production (Vercel filesystem is read-only except /tmp)
 const DATA_DIR = process.env.NODE_ENV === 'production'
   ? '/tmp/placement-data'
   : path.join(process.cwd(), 'data')

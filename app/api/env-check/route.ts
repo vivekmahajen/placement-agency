@@ -7,11 +7,13 @@ export async function GET() {
   let dbStatus = 'not configured'
   if (postgresUrl) {
     try {
-      const { sql } = await import('@vercel/postgres')
-      await sql`SELECT 1`
+      const { Pool } = await import('pg')
+      const pool = new Pool({ connectionString: postgresUrl, ssl: { rejectUnauthorized: false } })
+      await pool.query('SELECT 1')
+      await pool.end()
       dbStatus = 'connected ✓'
     } catch (e) {
-      dbStatus = `configured but failing: ${e instanceof Error ? e.message : String(e)}`
+      dbStatus = `failing: ${e instanceof Error ? e.message : String(e)}`
     }
   }
 
