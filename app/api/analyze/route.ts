@@ -5,7 +5,10 @@ import type { AnalyzeRequest, CaseRecord } from '@/lib/types'
 
 function makeClient() {
   const apiKey = process.env.ANTHROPIC_API_KEY ?? ''
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set')
+  if (!apiKey) {
+    const keys = Object.keys(process.env).filter(k => k.startsWith('ANTHROPIC')).join(', ')
+    throw new Error(`ANTHROPIC_API_KEY is not set. Available ANTHROPIC_* vars: [${keys || 'none'}]`)
+  }
   if (apiKey.startsWith('sk-ant-si-')) {
     return new Anthropic({
       apiKey: 'placeholder',
