@@ -133,25 +133,31 @@ function createUserFile(user: UserWithHash) {
   writeJson(USERS_FILE, users)
 }
 
-// ── Public API ─────────────────────────────────────────────────────────────
-const useDb = () => Boolean(process.env.POSTGRES_URL)
-
+// ── Public API (Postgres with automatic file fallback) ────────────────────
 export async function getRecords(): Promise<CaseRecord[]> {
-  if (useDb()) return getRecordsFromDb()
+  if (process.env.POSTGRES_URL) {
+    try { return await getRecordsFromDb() } catch { /* fall through */ }
+  }
   return getRecordsFromFile()
 }
 
 export async function saveRecord(record: CaseRecord): Promise<void> {
-  if (useDb()) return saveRecordToDb(record)
+  if (process.env.POSTGRES_URL) {
+    try { await saveRecordToDb(record); return } catch { /* fall through */ }
+  }
   saveRecordToFile(record)
 }
 
 export async function findUserByEmail(email: string): Promise<UserWithHash | null> {
-  if (useDb()) return findUserByEmailDb(email)
+  if (process.env.POSTGRES_URL) {
+    try { return await findUserByEmailDb(email) } catch { /* fall through */ }
+  }
   return findUserByEmailFile(email)
 }
 
 export async function createUser(user: UserWithHash): Promise<void> {
-  if (useDb()) return createUserDb(user)
+  if (process.env.POSTGRES_URL) {
+    try { await createUserDb(user); return } catch { /* fall through */ }
+  }
   createUserFile(user)
 }
